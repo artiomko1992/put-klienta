@@ -1,0 +1,13 @@
+# Publish ONLY the app files. Everything else (BRIEF.md, SYSTEM.md, screens/,
+# test files) stays on the computer and does not go to GitHub.
+*
+!.gitignore
+!index.html
+!style.css
+!app.js
+!sw.js
+!manifest.webmanifest
+!icon.svg
+!icon-192.png
+!icon-512.png
+!README.md

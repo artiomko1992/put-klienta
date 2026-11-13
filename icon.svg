@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Фон во весь квадрат: телефон сам скруглит углы (иконка подходит и как maskable) -->
+  <rect width="512" height="512" fill="#1E2C3A"/>
+  <!-- Воронка из пяти этапов пути клиента, в цветах этапов -->
+  <rect x="106" y="126" width="300" height="40" rx="10" fill="#99CCFF"/>
+  <rect x="131" y="180" width="250" height="40" rx="10" fill="#FFCC66"/>
+  <rect x="156" y="234" width="200" height="40" rx="10" fill="#F2E36B"/>
+  <rect x="181" y="288" width="150" height="40" rx="10" fill="#B6E36B"/>
+  <rect x="206" y="342" width="100" height="40" rx="10" fill="#7FDDB4"/>
+</svg>

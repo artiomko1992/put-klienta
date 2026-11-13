@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Путь клиента — прототип</title>
+<meta name="description" content="Кликабельный прототип системы работы с клиентами SolutionCRM. Все данные выдуманные.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#1E2C3A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Путь клиента">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <a class="side-brand" href="#/day" aria-label="Путь клиента — на главную">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18l-7 8v6l-4 2v-8z"/></svg>
+    </a>
+    <nav class="nav" id="nav" aria-label="Разделы"></nav>
+  </aside>
+  <div class="work">
+    <header class="top">
+      <div class="top-title" id="topTitle">Путь клиента</div>
+      <div class="top-meta" id="topMeta"></div>
+    </header>
+    <div class="proto-note">Прототип: все клиенты и цифры выдуманные, данные хранятся только в этом браузере.</div>
+    <main id="main" tabindex="-1"></main>
+  </div>
+</div>
+<dialog id="dlg" aria-modal="true"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileInput" accept="application/json,.json" hidden>
+<noscript><p class="noscript">Для работы прототипа нужен включённый JavaScript.</p></noscript>
+<script src="app.js"></script>
+</body>
+</html>
