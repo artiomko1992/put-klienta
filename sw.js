@@ -5,7 +5,7 @@
   ВАЖНО: при КАЖДОЙ выкладке повышайте VERSION (v1 → v2 → v3 ...).
   Иначе телефон продолжит показывать старую версию из своего кэша.
 */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = 'put-klienta-' + VERSION;
 const FONT_CACHE = 'put-klienta-fonts';
 

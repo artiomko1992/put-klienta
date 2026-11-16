@@ -1059,7 +1059,7 @@ function renderChrome(route) {
   const nav = $('#nav');
   const meta = $('#topMeta');
   const item = NAV.find(n => n[0] === (route === 'project' ? 'projects' : route));
-  $('#topTitle').textContent = !S && route !== 'client' ? 'Путь клиента' : item ? item[1] : 'Мой день';
+  $('#topTitle').textContent = !S && route !== 'client' ? 'Путь клиента (демо)' : item ? item[1] : 'Мой день';
   if (!S) {
     nav.innerHTML = '';
     meta.innerHTML = route === 'client' ? '<a class="btn tiny ghost" href="#/">На главную</a>' : '';
