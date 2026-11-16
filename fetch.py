@@ -15,7 +15,12 @@ import urllib.request
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-SOURCE = "https://xmlcalendar.ru/data/ru/{year}/calendar.json"
+# Два адреса одного и того же календаря. Первый — официальная копия проекта на GitHub
+# (её видят серверы GitHub Actions), второй — основной сайт (он не отвечает зарубежным серверам).
+SOURCES = [
+    "https://xmlcalendar.github.io/data/ru/{year}/calendar.json",
+    "https://xmlcalendar.ru/data/ru/{year}/calendar.json",
+]
 OUT = Path(__file__).with_name("data.json")
 
 
@@ -27,14 +32,25 @@ def load_old():
         return None
 
 
+def download(year):
+    """Скачивает календарь года: пробует адреса по очереди, пока какой-то не ответит."""
+    problems = []
+    for url in SOURCES:
+        try:
+            req = urllib.request.Request(url.format(year=year), headers={"User-Agent": "put-klienta-calendar/1.0"})
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                raw = json.loads(resp.read().decode("utf-8"))
+            if raw.get("year") != year or len(raw.get("months", [])) != 12:
+                raise ValueError("неожиданный формат ответа")
+            return raw
+        except Exception as e:
+            problems.append(f"{url.split('/')[2]}: {e}")
+    raise RuntimeError("; ".join(problems))
+
+
 def fetch_year(year):
     """Календарь одного года: нерабочие дни, сокращённые дни, рабочие выходные."""
-    req = urllib.request.Request(SOURCE.format(year=year), headers={"User-Agent": "put-klienta-calendar/1.0"})
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        raw = json.loads(resp.read().decode("utf-8"))
-
-    if raw.get("year") != year or len(raw.get("months", [])) != 12:
-        raise ValueError("неожиданный формат ответа")
+    raw = download(year)
 
     off, short = [], []
     for m in raw["months"]:
@@ -88,7 +104,7 @@ def main():
         return 0
 
     data = {
-        "source": "xmlcalendar.ru — производственный календарь РФ",
+        "source": "xmlcalendar (производственный календарь РФ)",
         "updated": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "years": years,
         "errors": errors,
