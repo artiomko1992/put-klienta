@@ -5,7 +5,7 @@
   ВАЖНО: при КАЖДОЙ выкладке повышайте VERSION (v1 → v2 → v3 ...).
   Иначе телефон продолжит показывать старую версию из своего кэша.
 */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'put-klienta-' + VERSION;
 const FONT_CACHE = 'put-klienta-fonts';
 
@@ -19,6 +19,7 @@ const APP_FILES = [
   './icon.svg',
   './icon-192.png',
   './icon-512.png',
+  './data.json',
 ];
 
 // Шрифт PT Sans: при установке сохраняем его целиком, чтобы без сети не было пропусков
@@ -70,6 +71,18 @@ self.addEventListener('fetch', event => {
     return;
   }
   if (url.origin !== self.location.origin) return;
+
+  // data.json (календарь) меняется сам по расписанию: сначала берём свежий из сети,
+  // без сети — последний сохранённый
+  if (url.pathname.endsWith('/data.json')) {
+    event.respondWith(
+      fetch(req).then(res => {
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put('./data.json', copy)); }
+        return res;
+      }).catch(() => caches.match('./data.json'))
+    );
+    return;
+  }
 
   // Открытие страницы: всегда отдаём сохранённый index.html (работает и без сети)
   if (req.mode === 'navigate') {

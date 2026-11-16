@@ -94,10 +94,32 @@ const today = () => (S && S.testDate) || realToday();
 const clock = () => { const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
 function addDays(s, n) { const d = parse(s); d.setDate(d.getDate() + n); return iso(d); }
 function fmt(s) { if (!s) return '—'; const [y, m, d] = s.split('-'); return d + '.' + m + '.' + y; }
+// Производственный календарь из data.json (его раз в неделю обновляет GitHub).
+// Пока файл не загрузился или для года нет данных — считаем по списку праздников из «Админки».
+let CAL = null;          // данные календаря
+let calState = 'loading'; // loading | ok | fail | file
+async function loadCalendar() {
+  try {
+    const res = await fetch('data.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    if (!d || !d.years || !Object.keys(d.years).length) throw new Error('пустой файл');
+    Object.values(d.years).forEach(y => { y.offSet = new Set(y.off); });
+    CAL = d; calState = 'ok';
+  } catch (e) {
+    CAL = null; calState = location.protocol === 'file:' ? 'file' : 'fail';
+  }
+  if (S) rerender();
+}
 function isWorkDay(s) {
+  const y = CAL && CAL.years[s.slice(0, 4)];
+  if (y) return !y.offSet.has(s);
   const wd = parse(s).getDay();
   const hol = S ? S.settings.holidays : HOLIDAYS_DEFAULT;
   return wd !== 0 && wd !== 6 && !hol.includes(s);
+}
+function calUpdatedText() {
+  return new Date(CAL.updated).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' по Москве';
 }
 function addWorkDays(s, n) { let c = s, k = 0; while (k < n) { c = addDays(c, 1); if (isWorkDay(c)) k++; } return c; }
 function prevWorkDay(s) { let c = addDays(s, -1); while (!isWorkDay(c)) c = addDays(c, -1); return c; }
@@ -927,9 +949,36 @@ function adminLlm() {
     <div class="field"><label for="llm_fallback">Запасная модель, если основная не ответила</label><select id="llm_fallback" data-change="llm" data-k="fallback">${opts(S.settings.llm.fallback)}</select></div></div>
     <ul class="keys">${MODELS.map(m => `<li>${esc(m.name)} ${m.key ? pill('ok', 'ключ задан') : pill('neutral', 'ключ не задан')}</li>`).join('')}</ul>`;
 }
+// Блок «Производственный календарь»: откуда данные, когда обновлены, ближайшие праздники
+function calendarPanel() {
+  if (calState === 'loading') return '<section class="panel"><h2>Производственный календарь</h2><p class="muted">Загружаю календарь…</p></section>';
+  if (calState !== 'ok') {
+    const why = calState === 'file'
+      ? 'Приложение открыто как файл с компьютера, а календарь подгружается только по ссылке в интернете.'
+      : 'Не удалось загрузить файл календаря (data.json). Возможно, нет интернета при первом открытии.';
+    return `<section class="panel"><h2>Производственный календарь</h2>
+      <div class="callout no">${why} Пока рабочие дни считаются по запасному списку праздников из «Админки» → «Календарь». Все функции работают.</div></section>`;
+  }
+  const T = today();
+  const all = Object.keys(CAL.years).sort().flatMap(y => CAL.years[y].off.map(d => ({ d, y })));
+  const holidays = all.filter(x => x.d >= T && ![0, 6].includes(parse(x.d).getDay())).slice(0, 6).map(x => x.d);
+  const workWeekends = Object.values(CAL.years).flatMap(y => y.workWeekends).filter(d => d >= T);
+  const shortDays = Object.values(CAL.years).flatMap(y => y.short).filter(d => d >= T).sort().slice(0, 4);
+  const ageDays = Math.floor((Date.now() - new Date(CAL.updated).getTime()) / 86400000);
+  return `<section class="panel"><h2>Производственный календарь</h2>
+    <p>Обновлено <b>${esc(calUpdatedText())}</b>. Годы: ${Object.keys(CAL.years).sort().join(', ')}. Источник: ${esc(CAL.source)}.</p>
+    ${ageDays > 14 ? `<div class="callout no">Календарь не обновлялся ${ageDays} ${plural(ageDays, 'день', 'дня', 'дней')}. Проверьте задание «Обновить календарь» на GitHub во вкладке Actions.</div>` : ''}
+    <div class="table-wrap"><table class="table"><tbody>
+      <tr><th>Ближайшие праздничные дни</th><td>${holidays.length ? holidays.map(fmt).join(', ') : '—'}</td></tr>
+      <tr><th>Рабочие выходные (переносы)</th><td>${workWeekends.length ? workWeekends.map(fmt).join(', ') : 'нет'}</td></tr>
+      <tr><th>Сокращённые дни</th><td>${shortDays.length ? shortDays.map(fmt).join(', ') : '—'}</td></tr>
+    </tbody></table></div>
+    <p class="muted small">По этому календарю считаются «${S.settings.autoAcceptDays} рабочих дня» до автоприёмки блока. Календарь обновляется сам каждый понедельник.</p></section>`;
+}
 function adminCalendar() {
-  return `<p class="muted">Праздничные нерабочие дни. Субботы и воскресенья учитываются сами. 2026 год — по утверждённому календарю, 2027 — предварительно: сверьте с официальным, когда его опубликуют. Одна дата в строке, формат ДД.ММ.ГГГГ.</p>
-    <div class="field"><label for="hol">Праздничные дни (${S.settings.holidays.length})</label><textarea id="hol" rows="10" data-change="holidays">${esc(S.settings.holidays.map(fmt).join('\n'))}</textarea><small class="err" id="holErr"></small></div>`;
+  return `${calendarPanel()}
+    <p class="muted">Запасной список праздников: используется, только если календарь выше не загрузился или для года нет данных. Субботы и воскресенья учитываются сами. Одна дата в строке, формат ДД.ММ.ГГГГ.</p>
+    <div class="field"><label for="hol">Запасной список праздников (${S.settings.holidays.length})</label><textarea id="hol" rows="8" data-change="holidays">${esc(S.settings.holidays.map(fmt).join('\n'))}</textarea><small class="err" id="holErr"></small></div>`;
 }
 function adminHistory() {
   const list = S.history.slice().reverse();
@@ -977,6 +1026,7 @@ function viewData() {
         <div class="field"><label for="testDate">Сегодня в прототипе</label><input id="testDate" type="date" value="${today()}" data-change="testDate"></div>
         ${S.testDate ? '<button class="btn ghost" data-act="realDate">Вернуть настоящую дату</button>' : ''}</section>
     </div>
+    ${calendarPanel()}
     <section class="panel danger-zone"><h2>Начать заново</h2><p>Обе кнопки заменяют текущие данные. Сначала скачайте копию, если она нужна.</p>
       <div class="stack"><button class="btn ghost" data-act="resetDemo">Заменить демо-данными</button><button class="btn ghost danger-text" data-act="wipe">Удалить все данные</button></div></section>`;
 }
@@ -1485,6 +1535,7 @@ window.addEventListener('hashchange', () => { ui.reasonFor = null; render(); win
 
 S = load();
 render();
+loadCalendar();
 
 // Работа без интернета: регистрируем service worker (только когда открыто по http/https, не из файла)
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

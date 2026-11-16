@@ -11,3 +11,8 @@
 !icon-192.png
 !icon-512.png
 !README.md
+!data.json
+!fetch.py
+!.github/
+!.github/workflows/
+!.github/workflows/update.yml

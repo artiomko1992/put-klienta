@@ -1,0 +1,40 @@
+# Обновление производственного календаря (data.json) по расписанию.
+# Каждый понедельник в 03:00 UTC = 06:00 по Москве. GitHub может запустить с опозданием на 5–15 минут.
+# Если в репозитории 60 дней нет изменений, GitHub сам выключает расписание —
+# включить обратно: вкладка Actions → «Обновить календарь» → Enable workflow.
+name: Обновить календарь
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch: {}   # кнопка «Run workflow» для ручного запуска
+
+permissions:
+  contents: write         # чтобы сохранить data.json обратно в репозиторий
+
+concurrency:
+  group: update-calendar
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Взять код репозитория
+        uses: actions/checkout@v4
+
+      - name: Собрать календарь
+        run: python3 fetch.py
+
+      - name: Сохранить data.json, если он изменился
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          if git diff --cached --quiet; then
+            echo "Изменений нет — сохранять нечего."
+          else
+            git commit -m "Календарь обновлён автоматически"
+            git push
+          fi
